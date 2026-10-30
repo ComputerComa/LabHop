@@ -1,0 +1,17 @@
+@* Project text is plain text from users and agents. Razor encodes it; it is never rendered as markup. *@
+<RadzenStack Gap="0.25rem">
+    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H2" class="rz-m-0">@Title</RadzenText>
+    @if (string.IsNullOrWhiteSpace(Text))
+    {
+        <span class="labhop-empty">Not set</span>
+    }
+    else
+    {
+        <div class="labhop-text">@Text</div>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Text { get; set; }
+}

@@ -1,0 +1,105 @@
+@page "/projects/{Id:guid}/edit"
+@inject ProjectService Projects
+@inject NavigationManager Navigation
+
+<PageTitle>Edit project - LabHop</PageTitle>
+
+@if (notFound)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false" Shade="Shade.Lighter">
+        That project does not exist. <a href="projects">Back to projects</a>
+    </RadzenAlert>
+}
+else if (model is not null)
+{
+    <RadzenStack Gap="1rem">
+        <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="rz-m-0">Edit project</RadzenText>
+
+        @if (conflict)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false" Shade="Shade.Lighter">
+                <RadzenStack Gap="0.5rem">
+                    <span>Someone else changed this project after you opened it, so your edits were not saved. Your text is still in the form below.</span>
+                    <div><RadzenButton Text="Discard my edits and load the latest version" ButtonStyle="ButtonStyle.Dark" Variant="Variant.Outlined" Size="ButtonSize.Small" Click="LoadAsync" /></div>
+                </RadzenStack>
+            </RadzenAlert>
+        }
+
+        @if (ruleViolation is not null)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false" Shade="Shade.Lighter">@ruleViolation</RadzenAlert>
+        }
+
+        <ProjectForm Model="model" SubmitText="Save changes" OnSubmit="SaveAsync" OnCancel="@(() => Navigation.NavigateTo($"projects/{Id}"))" Errors="errors" Busy="busy" />
+    </RadzenStack>
+}
+
+@code {
+    private ProjectFormModel? model;
+    private uint version;
+    private IReadOnlyDictionary<string, string>? errors;
+    private string? ruleViolation;
+    private bool conflict;
+    private bool notFound;
+    private bool busy;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+            var project = await Projects.GetAsync(actor, Id);
+            model = ProjectFormModel.From(project);
+            version = project.Version;
+            conflict = false;
+            errors = null;
+            ruleViolation = null;
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
+    }
+
+    private async Task SaveAsync(ProjectFormModel form)
+    {
+        busy = true;
+        errors = null;
+        ruleViolation = null;
+        conflict = false;
+        try
+        {
+            var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+            await Projects.UpdateAsync(actor, Id, version, form.ToChanges());
+            Navigation.NavigateTo($"projects/{Id}");
+        }
+        catch (ConcurrencyConflictException)
+        {
+            conflict = true;
+        }
+        catch (ValidationFailedException exception)
+        {
+            errors = exception.Errors;
+        }
+        catch (RuleViolationException exception)
+        {
+            ruleViolation = exception.Message;
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

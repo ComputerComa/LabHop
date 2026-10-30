@@ -1,0 +1,86 @@
+@page "/"
+@page "/projects"
+@inject ProjectService Projects
+@inject NavigationManager Navigation
+
+<PageTitle>Projects - LabHop</PageTitle>
+
+<RadzenStack Gap="1rem">
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+        <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="rz-m-0">Projects</RadzenText>
+        <RadzenButton Text="New project" Icon="add" Click="@(() => Navigation.NavigateTo("projects/new"))" />
+    </RadzenStack>
+
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+        <RadzenDropDown TValue="ProjectStatus?" Value="status" ValueChanged="OnStatusChanged" Data="ProjectDisplay.StatusOptions"
+                        TextProperty="Label" ValueProperty="Value" AllowClear="true" Placeholder="All statuses"
+                        InputAttributes="@(new Dictionary<string, object> { ["aria-label"] = "Filter by status" })" Style="width: 12rem" />
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenSwitch Value="includeArchived" ValueChanged="OnIncludeArchivedChanged" Name="includeArchived" />
+            <RadzenLabel Text="Show archived" Component="includeArchived" />
+        </RadzenStack>
+    </RadzenStack>
+
+    <RadzenDataGrid @ref="grid" TItem="ProjectSummary" Data="items" Count="total" LoadData="LoadAsync" IsLoading="loading"
+                    AllowPaging="true" PageSize="@ProjectQuery.DefaultLimit" PagerHorizontalAlign="HorizontalAlign.Left"
+                    EmptyText="No projects yet." RowSelect="@((ProjectSummary project) => Navigation.NavigateTo($"projects/{project.Id}"))"
+                    SelectionMode="DataGridSelectionMode.Single">
+        <Columns>
+            <RadzenDataGridColumn TItem="ProjectSummary" Property="Name" Title="Name" MinWidth="14rem">
+                <Template Context="project">
+                    <a href="projects/@project.Id">@project.Name</a>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProjectSummary" Property="Goal" Title="Goal" MinWidth="12rem" />
+            <RadzenDataGridColumn TItem="ProjectSummary" Property="Status" Title="Status" Width="15rem">
+                <Template Context="project">
+                    <RadzenBadge BadgeStyle="project.Status.Badge()" Text="@project.Status.Label()" />
+                    @if (project.Archived)
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Base" Text="Archived" class="rz-ms-1" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProjectSummary" Property="UpdatedAtUtc" Title="Updated" Width="12rem">
+                <Template Context="project">
+                    <LocalTime Utc="project.UpdatedAtUtc" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</RadzenStack>
+
+@code {
+    private RadzenDataGrid<ProjectSummary> grid = default!;
+    // Stays null until loaded: the grid calls LoadData only while its Data is null.
+    private IReadOnlyList<ProjectSummary>? items;
+    private int total;
+    private bool loading;
+    private ProjectStatus? status;
+    private bool includeArchived;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private async Task LoadAsync(LoadDataArgs args)
+    {
+        loading = true;
+        var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+        var page = await Projects.ListAsync(actor, new ProjectQuery(status, includeArchived, args.Top ?? ProjectQuery.DefaultLimit, args.Skip ?? 0));
+        items = page.Items;
+        total = page.Total;
+        loading = false;
+    }
+
+    private async Task OnStatusChanged(ProjectStatus? value)
+    {
+        status = value;
+        await grid.FirstPage(forceReload: true);
+    }
+
+    private async Task OnIncludeArchivedChanged(bool value)
+    {
+        includeArchived = value;
+        await grid.FirstPage(forceReload: true);
+    }
+}

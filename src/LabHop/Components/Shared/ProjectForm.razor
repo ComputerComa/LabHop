@@ -1,0 +1,49 @@
+@* The form shared by the create and edit pages. It holds no data access; the page owns the service call. *@
+<RadzenTemplateForm TItem="ProjectFormModel" Data="Model" Submit="Submit">
+    <RadzenStack Gap="1rem">
+        <RadzenFormField Text="Name" Variant="Variant.Outlined">
+            <ChildContent>
+                <RadzenTextBox Name="Name" @bind-Value="Model.Name" MaxLength="@Project.NameMaxLength" />
+            </ChildContent>
+            <Helper>
+                <RadzenRequiredValidator Component="Name" Text="Name is required." />
+            </Helper>
+        </RadzenFormField>
+        <RadzenFormField Text="Status" Variant="Variant.Outlined">
+            <RadzenDropDown Name="Status" @bind-Value="Model.Status" Data="ProjectDisplay.StatusOptions" TextProperty="Label" ValueProperty="Value" />
+        </RadzenFormField>
+        <RadzenFormField Text="Goal" Variant="Variant.Outlined">
+            <RadzenTextArea Name="Goal" @bind-Value="Model.Goal" Rows="2" MaxLength="@Project.GoalMaxLength" />
+        </RadzenFormField>
+        <RadzenFormField Text="Description" Variant="Variant.Outlined">
+            <RadzenTextArea Name="Description" @bind-Value="Model.Description" Rows="5" MaxLength="@Project.DescriptionMaxLength" />
+        </RadzenFormField>
+        <RadzenFormField Text="Current plan" Variant="Variant.Outlined">
+            <RadzenTextArea Name="CurrentPlan" @bind-Value="Model.CurrentPlan" Rows="8" MaxLength="@Project.CurrentPlanMaxLength" />
+        </RadzenFormField>
+        @if (Errors is { Count: > 0 })
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false" Shade="Shade.Lighter">
+                @foreach (var error in Errors.Values)
+                {
+                    <div>@error</div>
+                }
+            </RadzenAlert>
+        }
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="@SubmitText" Icon="save" IsBusy="Busy" />
+            <RadzenButton ButtonType="ButtonType.Button" Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" />
+        </RadzenStack>
+    </RadzenStack>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter, EditorRequired] public ProjectFormModel Model { get; set; } = default!;
+    [Parameter, EditorRequired] public string SubmitText { get; set; } = "";
+    [Parameter] public EventCallback<ProjectFormModel> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, string>? Errors { get; set; }
+    [Parameter] public bool Busy { get; set; }
+
+    private Task Submit(ProjectFormModel model) => OnSubmit.InvokeAsync(model);
+}

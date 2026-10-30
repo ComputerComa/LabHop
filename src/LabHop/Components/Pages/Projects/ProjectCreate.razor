@@ -1,0 +1,39 @@
+@page "/projects/new"
+@inject ProjectService Projects
+@inject NavigationManager Navigation
+
+<PageTitle>New project - LabHop</PageTitle>
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="rz-m-0">New project</RadzenText>
+    <ProjectForm Model="model" SubmitText="Create project" OnSubmit="CreateAsync" OnCancel="@(() => Navigation.NavigateTo("projects"))" Errors="errors" Busy="busy" />
+</RadzenStack>
+
+@code {
+    private readonly ProjectFormModel model = new();
+    private IReadOnlyDictionary<string, string>? errors;
+    private bool busy;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private async Task CreateAsync(ProjectFormModel form)
+    {
+        busy = true;
+        errors = null;
+        try
+        {
+            var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+            var project = await Projects.CreateAsync(actor, form.ToNewProject());
+            Navigation.NavigateTo($"projects/{project.Id}");
+        }
+        catch (ValidationFailedException exception)
+        {
+            errors = exception.Errors;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

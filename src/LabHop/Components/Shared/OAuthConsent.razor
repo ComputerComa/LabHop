@@ -1,0 +1,74 @@
+@* Rendered by /connect/authorize as a complete, non-interactive page. Every value here comes from the
+   validated OAuth request and is HTML-encoded by Razor. *@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Authorize @ClientName - LabHop</title>
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/material-base.css" />
+    <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+    <main class="labhop-account">
+        <div class="labhop-card">
+            <p class="labhop-brand">LabHop</p>
+            <h1>Allow @ClientName to access LabHop?</h1>
+            <p>Signed in as <strong>@UserName</strong>.</p>
+
+            <p>After you approve, this page sends access to:</p>
+            <p class="labhop-redirect-host"><strong>@RedirectHost</strong></p>
+            @if (IsLoopbackRedirect)
+            {
+                <p class="labhop-status labhop-status-warning" role="note">
+                    This address is on your own computer. Any program running there could be receiving this
+                    access, so approve only if you just started this connection yourself.
+                </p>
+            }
+
+            <form method="post" action="connect/authorize">
+                <input type="hidden" name="@AntiforgeryFieldName" value="@AntiforgeryToken" />
+                @foreach (var parameter in RequestParameters)
+                {
+                    <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
+                }
+
+                <ul class="labhop-scopes">
+                    <li>Read your projects and their history</li>
+                    @if (WriteRequested)
+                    {
+                        <li>
+                            <label class="labhop-check">
+                                <input type="checkbox" name="@OAuthEndpoints.GrantWriteField" />
+                                <span>Also allow changes to your projects. Changes are recorded as made by this agent.</span>
+                            </label>
+                        </li>
+                    }
+                    @if (OfflineRequested)
+                    {
+                        <li>Stay connected until you revoke it under Connected agents</li>
+                    }
+                </ul>
+
+                <div class="labhop-actions">
+                    <button type="submit" name="@OAuthEndpoints.DecisionField" value="@OAuthEndpoints.ApproveValue" class="labhop-button labhop-button-primary">Approve</button>
+                    <button type="submit" name="@OAuthEndpoints.DecisionField" value="deny" class="labhop-button">Deny</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
+
+@code {
+    [Parameter] public string? ClientName { get; set; }
+    [Parameter] public string? UserName { get; set; }
+    [Parameter] public string? RedirectHost { get; set; }
+    [Parameter] public bool IsLoopbackRedirect { get; set; }
+    [Parameter] public bool WriteRequested { get; set; }
+    [Parameter] public bool OfflineRequested { get; set; }
+    [Parameter] public string? AntiforgeryFieldName { get; set; }
+    [Parameter] public string? AntiforgeryToken { get; set; }
+    [Parameter] public IReadOnlyList<KeyValuePair<string, string>> RequestParameters { get; set; } = [];
+}

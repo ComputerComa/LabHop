@@ -1,0 +1,23 @@
+@inject BrowserTimeZone TimeZone
+
+<time datetime="@Utc.ToString("O")" title="@Utc.ToString("yyyy-MM-dd HH:mm") UTC">@text</time>
+
+@code {
+    private string text = "";
+
+    [Parameter, EditorRequired]
+    public DateTime Utc { get; set; }
+
+    protected override void OnParametersSet() => text = $"{Utc:yyyy-MM-dd HH:mm} UTC";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var zone = await TimeZone.GetAsync();
+        var local = $"{TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Utc, DateTimeKind.Utc), zone):yyyy-MM-dd HH:mm}";
+        if (local != text && zone != TimeZoneInfo.Utc)
+        {
+            text = local;
+            StateHasChanged();
+        }
+    }
+}

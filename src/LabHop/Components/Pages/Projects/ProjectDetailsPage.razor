@@ -1,0 +1,131 @@
+@page "/projects/{Id:guid}"
+@inject ProjectService Projects
+@inject NavigationManager Navigation
+@inject NotificationService Notifications
+
+<PageTitle>@(project?.Name ?? "Project") - LabHop</PageTitle>
+
+@if (notFound)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false" Shade="Shade.Lighter">
+        That project does not exist. <a href="projects">Back to projects</a>
+    </RadzenAlert>
+}
+else if (project is not null)
+{
+    <RadzenStack Gap="1.5rem">
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="rz-m-0">@project.Name</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                    <RadzenBadge BadgeStyle="project.Status.Badge()" Text="@project.Status.Label()" />
+                    @if (project.ArchivedAtUtc is not null)
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Base" Text="Archived" />
+                    }
+                </RadzenStack>
+            </RadzenStack>
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                @if (project.ArchivedAtUtc is null)
+                {
+                    <RadzenButton Text="Edit" Icon="edit" Click="@(() => Navigation.NavigateTo($"projects/{Id}/edit"))" />
+                    <RadzenButton Text="Archive" Icon="archive" ButtonStyle="ButtonStyle.Light" IsBusy="busy" Click="@(() => SetArchivedAsync(true))" />
+                }
+                else
+                {
+                    <RadzenButton Text="Restore" Icon="unarchive" IsBusy="busy" Click="@(() => SetArchivedAsync(false))" />
+                }
+            </RadzenStack>
+        </RadzenStack>
+
+        <ProjectTextSection Title="Goal" Text="@project.Goal" />
+        <ProjectTextSection Title="Description" Text="@project.Description" />
+        <ProjectTextSection Title="Current plan" Text="@project.CurrentPlan" />
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H2" class="rz-m-0">Activity</RadzenText>
+            @if (activity.Count == 0)
+            {
+                <RadzenText>No activity yet.</RadzenText>
+            }
+            <ul class="labhop-activity">
+                @foreach (var entry in activity)
+                {
+                    <li>
+                        <RadzenBadge BadgeStyle="@(entry.ActorKind == ActorKind.Agent ? BadgeStyle.Secondary : BadgeStyle.Light)" Text="@(entry.ActorKind == ActorKind.Agent ? "Agent" : "Human")" />
+                        <strong>@entry.ActorDisplayName</strong>
+                        <span>@ActionLabel(entry.Action)</span>
+                        @if (entry.Changes.Count > 0)
+                        {
+                            <span class="labhop-changed">(@string.Join(", ", entry.Changes.Select(change => change.Field)))</span>
+                        }
+                        <LocalTime Utc="entry.OccurredAtUtc" />
+                    </li>
+                }
+            </ul>
+        </RadzenStack>
+    </RadzenStack>
+}
+
+@code {
+    private ProjectDetails? project;
+    private IReadOnlyList<ActivityView> activity = [];
+    private bool notFound;
+    private bool busy;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+        try
+        {
+            project = await Projects.GetAsync(actor, Id);
+            activity = await Projects.GetActivityAsync(actor, Id, 50);
+            notFound = false;
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
+    }
+
+    private async Task SetArchivedAsync(bool archived)
+    {
+        busy = true;
+        try
+        {
+            var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+            await Projects.SetArchivedAsync(actor, Id, project!.Version, archived);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            Notifications.Notify(NotificationSeverity.Warning, "Not changed", "This project changed since you opened it. Review the latest version and try again.");
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
+        finally
+        {
+            busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private static string ActionLabel(string action) => action switch
+    {
+        ActivityActions.ProjectCreated => "created this project",
+        ActivityActions.ProjectUpdated => "updated",
+        ActivityActions.ProjectArchived => "archived this project",
+        ActivityActions.ProjectRestored => "restored this project",
+        _ => action,
+    };
+}

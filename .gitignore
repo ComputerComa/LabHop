@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# LabHop local state: OAuth certificates and Data Protection keys must never be committed
+.local/

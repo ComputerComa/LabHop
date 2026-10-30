@@ -1,0 +1,95 @@
+@page "/agents"
+@inject AgentAccessService AgentAccess
+@inject NotificationService Notifications
+@inject DialogService Dialogs
+@inject LabHop.Options.LabHopOptions Options
+
+<PageTitle>Connected agents - LabHop</PageTitle>
+
+<RadzenStack Gap="1.5rem">
+    <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="rz-m-0">Connected agents</RadzenText>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText>Agents you have approved. Revoking a connection stops its access immediately.</RadzenText>
+        <RadzenDataGrid TItem="AgentConnection" Data="connections" IsLoading="loading" EmptyText="No agents are connected.">
+            <Columns>
+                <RadzenDataGridColumn TItem="AgentConnection" Property="ClientName" Title="Agent" />
+                <RadzenDataGridColumn TItem="AgentConnection" Title="Access">
+                    <Template Context="connection">
+                        @AccessLabel(connection)
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentConnection" Property="CreatedAtUtc" Title="Approved" Width="12rem">
+                    <Template Context="connection">
+                        @if (connection.CreatedAtUtc is { } created)
+                        {
+                            <LocalTime Utc="created" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentConnection" Title="" Width="8rem" Sortable="false" Filterable="false">
+                    <Template Context="connection">
+                        <RadzenButton Text="Revoke" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined" Size="ButtonSize.Small" Click="@(() => RevokeAsync(connection))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H2" class="rz-m-0">Connect an agent</RadzenText>
+        <RadzenText>
+            An administrator registers each agent once on the server. The Claude Code commands below use a
+            client ID of <code>claude-code</code>; see <code>docs/oauth-clients.md</code> for other agents.
+        </RadzenText>
+        <pre class="labhop-code">LabHop oauth-client add --client-id claude-code --name "Claude Code" --loopback
+claude mcp add --transport http --client-id claude-code labhop @Options.McpResource
+claude mcp login labhop</pre>
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private IReadOnlyList<AgentConnection> connections = [];
+    private bool loading = true;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+        connections = await AgentAccess.ListAsync(actor);
+        loading = false;
+    }
+
+    private async Task RevokeAsync(AgentConnection connection)
+    {
+        var confirmed = await Dialogs.Confirm(
+            $"Revoke access for {connection.ClientName}? It will need to be approved again to reconnect.",
+            "Revoke access",
+            new ConfirmOptions { OkButtonText = "Revoke", CancelButtonText = "Keep" });
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var actor = PrincipalActors.ForBrowser((await AuthenticationState).User);
+            await AgentAccess.RevokeAsync(actor, connection.AuthorizationId);
+            Notifications.Notify(NotificationSeverity.Success, "Access revoked", connection.ClientName);
+        }
+        catch (RuleViolationException exception)
+        {
+            Notifications.Notify(NotificationSeverity.Warning, "Not revoked", exception.Message);
+        }
+
+        await LoadAsync();
+    }
+
+    private static string AccessLabel(AgentConnection connection) =>
+        connection.Scopes.Contains(LabHopScopes.Write) ? "Read and write" : "Read only";
+}

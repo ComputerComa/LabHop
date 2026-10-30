@@ -1,0 +1,195 @@
+:root {
+    --labhop-text: #1f2933;
+    --labhop-muted: #52606d;
+    --labhop-border: #cbd2d9;
+    --labhop-surface: #ffffff;
+    --labhop-background: #f5f7fa;
+    --labhop-primary: #1b5e9e;
+    --labhop-danger: #b42318;
+    --labhop-warning-surface: #fff4e0;
+    --labhop-danger-surface: #fdecea;
+}
+
+html, body {
+    margin: 0;
+    font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--labhop-text);
+    background: var(--labhop-background);
+}
+
+/* FocusOnNavigate moves focus to the page heading for screen readers; it is not an interactive element. */
+h1:focus {
+    outline: none;
+}
+
+/* Application pages */
+.labhop-page {
+    padding: 1.5rem;
+    max-width: 72rem;
+}
+
+.labhop-page a {
+    color: var(--labhop-primary);
+}
+
+/* The theme's lighter alert shades put colored text on a similar background, too faint to read. */
+.rz-alert,
+.rz-alert .rz-alert-message,
+.rz-alert .rz-alert-content {
+    color: var(--labhop-text);
+}
+
+.labhop-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.labhop-empty {
+    color: var(--labhop-muted);
+}
+
+.labhop-logout {
+    padding: 0.5rem;
+}
+
+.labhop-activity {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.labhop-activity li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--labhop-border);
+}
+
+.labhop-changed,
+.labhop-activity time {
+    color: var(--labhop-muted);
+}
+
+.labhop-code {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    background: var(--labhop-surface);
+    border: 1px solid var(--labhop-border);
+    border-radius: 4px;
+}
+
+/* Static pages: account forms and OAuth consent */
+.labhop-account {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.labhop-card {
+    width: 100%;
+    max-width: 28rem;
+    padding: 1.5rem;
+    background: var(--labhop-surface);
+    border: 1px solid var(--labhop-border);
+    border-radius: 8px;
+}
+
+.labhop-card h1 {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.labhop-brand {
+    margin: 0 0 0.5rem;
+    color: var(--labhop-muted);
+    font-weight: 500;
+}
+
+.labhop-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.labhop-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem;
+}
+
+.labhop-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.labhop-error,
+.labhop-status-error {
+    color: var(--labhop-danger);
+}
+
+.labhop-status {
+    margin: 0 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    background: var(--labhop-background);
+}
+
+.labhop-status-error {
+    background: var(--labhop-danger-surface);
+}
+
+.labhop-status-warning {
+    background: var(--labhop-warning-surface);
+}
+
+.labhop-redirect-host {
+    font-size: 1.125rem;
+    overflow-wrap: anywhere;
+}
+
+.labhop-scopes {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+}
+
+.labhop-scopes li {
+    margin-bottom: 0.5rem;
+}
+
+.labhop-scopes .labhop-check {
+    margin-bottom: 0;
+}
+
+.labhop-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.labhop-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--labhop-border);
+    border-radius: 4px;
+    background: var(--labhop-surface);
+    color: var(--labhop-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.labhop-button-primary {
+    border-color: var(--labhop-primary);
+    background: var(--labhop-primary);
+    color: #ffffff;
+}
+
+.labhop-button:focus-visible {
+    outline: 2px solid var(--labhop-primary);
+    outline-offset: 2px;
+}

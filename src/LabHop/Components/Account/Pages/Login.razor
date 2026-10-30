@@ -1,0 +1,92 @@
+@page "/Account/Login"
+@attribute [AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using LabHop.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Log in</PageTitle>
+
+<h1>Log in</h1>
+<StatusMessage Message="@errorMessage" />
+<EditForm EditContext="editContext" method="post" OnValidSubmit="LoginUser" FormName="login">
+    <DataAnnotationsValidator />
+    <label class="labhop-field">
+        <span>Email</span>
+        <InputText @bind-Value="Input.Email" class="rz-textbox" autocomplete="username" aria-required="true" />
+        <ValidationMessage For="() => Input.Email" class="labhop-error" />
+    </label>
+    <label class="labhop-field">
+        <span>Password</span>
+        <InputText type="password" @bind-Value="Input.Password" class="rz-textbox" autocomplete="current-password" aria-required="true" />
+        <ValidationMessage For="() => Input.Password" class="labhop-error" />
+    </label>
+    <label class="labhop-check">
+        <InputCheckbox @bind-Value="Input.RememberMe" />
+        <span>Remember me</span>
+    </label>
+    <button type="submit" class="labhop-button labhop-button-primary">Log in</button>
+</EditForm>
+
+@code {
+    private string? errorMessage;
+    private EditContext editContext = default!;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        editContext = new EditContext(Input);
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; }
+    }
+}

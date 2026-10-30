@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+
+<RadzenComponents />
+
+<RadzenLayout>
+    <RadzenHeader>
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
+            <RadzenText TextStyle="TextStyle.H6" TagName="TagName.Span" class="rz-m-0">LabHop</RadzenText>
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="sidebarExpanded">
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Text="Projects" Icon="folder" Path="projects" />
+            <RadzenPanelMenuItem Text="Connected agents" Icon="smart_toy" Path="agents" />
+            <RadzenPanelMenuItem Text="Change password" Icon="key" Path="Account/Manage/ChangePassword" />
+        </RadzenPanelMenu>
+        <form action="Account/Logout" method="post" class="labhop-logout">
+            <AntiforgeryToken />
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Log out" Icon="logout" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" />
+        </form>
+    </RadzenSidebar>
+    <RadzenBody>
+        <div class="labhop-page">
+            @Body
+        </div>
+    </RadzenBody>
+</RadzenLayout>
+
+@code {
+    private bool sidebarExpanded = true;
+}
